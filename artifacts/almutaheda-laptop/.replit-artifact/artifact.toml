@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "المتحدة لابتوب"
+description = "متجر عربي تجريبي لاستكشاف أجهزة اللابتوب المستعملة والمجددة، مع صفحات المنتجات وسلة محلية ونموذج حجز توضيحي."
+version = "1.0.0"
+id = "artifacts/almutaheda-laptop"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22477
+
+[services.development]
+run = "pnpm --filter @workspace/almutaheda-laptop run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/almutaheda-laptop", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/almutaheda-laptop/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22477"
+BASE_PATH = "/"
