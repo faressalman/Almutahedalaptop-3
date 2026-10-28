@@ -365,6 +365,7 @@ a { color: inherit; text-decoration: none; }
 .hero-visual { position:relative; min-height:345px; display:grid; place-items:center; }
 .hero-visual:before { content:''; position:absolute; width:350px; height:350px; border-radius:50%; background:#dcebe4; }
 .hero-product { position:relative; width:min(100%,470px); height:330px; object-fit:contain; mix-blend-mode:multiply; filter: drop-shadow(0 24px 22px rgba(22,46,65,.14)); animation: enter .8s ease both; }
+.hero-product-empty { position:relative; width:min(100%,470px); height:330px; display:grid; place-items:center; color:#5c8f72; }
 .float-note { position:absolute; right:4%; bottom:20px; background:#fff; border:1px solid #e4e9ec; border-radius:15px; padding:12px 16px; display:flex; align-items:center; gap:10px; box-shadow:0 12px 30px rgba(22,46,65,.08); font-size:12px; }
 .float-note strong { display:block; font-size:13px; color:#18314e; }
 .section { padding:62px 0; }
@@ -592,7 +593,7 @@ html.dark .toast-message { background:#203229; color:#d9f3e1; }
  .trust-row { gap:12px;margin-top:20px;font-size:10px; }
  .hero-visual { min-height:250px; }
  .hero-visual:before { width:235px;height:235px; }
- .hero-product { height:240px; }
+ .hero-product,.hero-product-empty { height:240px; }
  .float-note { right:0;bottom:7px;padding:9px 11px;font-size:10px; }
  .section { padding:42px 0; }
  .section-head h2 { font-size:22px; }
