@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, createContext, useContext, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, createContext, useContext, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,7 +25,7 @@ type DemoConfirmation = { id: string; items: CartItem[]; total: number; deposit:
 type Store = {
   products: Product[]; productsLoading: boolean; productsError: string | null;
   cart: CartItem[]; demoReservationCount: number;
-  refreshProducts: () => Promise<void>;
+  refreshProducts: (options?: { silent?: boolean }) => Promise<void>;
   add: (id: string) => void; remove: (id: string) => void; qty: (id: string, amount: number) => void;
   recordDemoReservation: () => void; toast: (message: string) => void;
 };
@@ -387,6 +387,7 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
+  const productsRequestRef = useRef<Promise<void> | null>(null);
   const [cart, setCart] = useState<CartItem[]>(() => {
     try { return JSON.parse(localStorage.getItem('almutaheda-demo-cart') || '[]') as CartItem[]; } catch { return []; }
   });
@@ -401,28 +402,33 @@ function App() {
     try { localStorage.setItem('almutaheda-demo-theme', darkMode ? 'dark' : 'light'); } catch { /* Theme remains active for this visit. */ }
   }, [darkMode]);
   useEffect(() => { if (!message) return; const timer=window.setTimeout(()=>setMessage(''),2600); return ()=>window.clearTimeout(timer); }, [message]);
-  const refreshProducts = useCallback(async () => {
+  const refreshProducts = useCallback((options: { silent?: boolean } = {}) => {
+    const silent = options.silent ?? false;
+    if (productsRequestRef.current) return productsRequestRef.current;
     if (!supabaseConfigured) {
-      setProducts([]);
       setProductsError('بيانات اتصال Supabase غير مُعدّة.');
       setProductsLoading(false);
-      return;
+      return Promise.resolve();
     }
-    setProductsLoading(true);
-    try {
-      setProducts(await loadProducts());
-      setProductsError(null);
-    } catch (loadError) {
-      setProducts([]);
-      setProductsError(loadError instanceof Error ? loadError.message : 'تعذّر تحميل المنتجات.');
-    } finally {
-      setProductsLoading(false);
-    }
+    if (!silent) setProductsLoading(true);
+    const request = (async () => {
+      try {
+        setProducts(await loadProducts());
+        setProductsError(null);
+      } catch (loadError) {
+        if (!silent) setProductsError(loadError instanceof Error ? loadError.message : 'تعذّر تحميل المنتجات.');
+      } finally {
+        if (!silent) setProductsLoading(false);
+        productsRequestRef.current = null;
+      }
+    })();
+    productsRequestRef.current = request;
+    return request;
   }, []);
   useEffect(() => { void refreshProducts(); }, [refreshProducts]);
   useEffect(() => {
     const refreshWhenVisible = () => {
-      if (document.visibilityState === 'visible') void refreshProducts();
+      if (document.visibilityState === 'visible') void refreshProducts({ silent: true });
     };
     window.addEventListener('focus', refreshWhenVisible);
     document.addEventListener('visibilitychange', refreshWhenVisible);
@@ -453,9 +459,8 @@ function App() {
 
 function RoutedPages({ darkMode, onToggleTheme }: { darkMode: boolean; onToggleTheme: () => void }) {
   const [location] = useLocation();
-  const { products, productsLoading, productsError, refreshProducts, toast } = useStore();
   const routes = <Switch>
-    <Route path="/admin" component={() => <AdminPage products={products} loading={productsLoading} error={productsError} refresh={refreshProducts} onToast={toast} />} />
+    <Route path="/admin" component={AdminRoute} />
     <Route path="/" component={Home} />
     <Route path="/products" component={ProductsPage} />
     <Route path="/product/:id" component={ProductPage} />
@@ -465,6 +470,11 @@ function RoutedPages({ darkMode, onToggleTheme }: { darkMode: boolean; onToggleT
     <Route component={NotFound} />
   </Switch>;
   return location === '/admin' ? routes : <AppShell darkMode={darkMode} onToggleTheme={onToggleTheme}>{routes}</AppShell>;
+}
+
+function AdminRoute() {
+  const { products, productsLoading, productsError, refreshProducts, toast } = useStore();
+  return <AdminPage products={products} loading={productsLoading} error={productsError} refresh={refreshProducts} onToast={toast} />;
 }
 
 export default App;
